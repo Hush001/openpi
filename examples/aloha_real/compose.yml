@@ -1,5 +1,5 @@
 # Run with:
-# docker compose -f examples/aloha_real/compose.yml up --build
+# docker compose -f examples/aloha_real/compose.yml up --build \ --build-arg http_proxy="http://111.229.52.172:7890" \ --build-arg https_proxy="http://111.229.52.172:7890"
 services:
   runtime:
     image: aloha_real
@@ -13,10 +13,19 @@ services:
     init: true
     tty: true
     network_mode: host
-    privileged: true
+    # 增加以下配置
+    privileged: true  # 启用特权模式
+    devices:
+      - "/dev/dri:/dev/dri"  # 挂载 GPU 渲染设备
+    group_add:
+      - "video"  # 添加视频用户组
     volumes:
+      - "/tmp/.X11-unix:/tmp/.X11-unix"  # X11 套接字
+      - "/lib/modules:/lib/modules"  # 内核模块
       - $PWD:/app
       - ../../data:/data
+    environment:
+      - DISPLAY=$DISPLAY  # 传递显示变量
 
   aloha_ros_nodes:
     image: aloha_real
@@ -48,19 +57,28 @@ services:
     init: true
     tty: true
     network_mode: host
+    # 增加以下配置
+    privileged: true  # 启用特权模式
+    devices:
+      - "/dev/dri:/dev/dri"  # 挂载 GPU 渲染设备
+    group_add:
+      - "video"  # 添加视频用户组
     volumes:
+      - "/tmp/.X11-unix:/tmp/.X11-unix"  # X11 套接字
+      - "/lib/modules:/lib/modules"  # 内核模块
       - $PWD:/app
       - ${OPENPI_DATA_HOME:-~/.cache/openpi}:/openpi_assets
     environment:
       - SERVER_ARGS
       - OPENPI_DATA_HOME=/openpi_assets
       - IS_DOCKER=true
+      - DISPLAY=$DISPLAY  # 传递显示变量
 
     # Comment out this block if not running on a machine with GPUs.
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    #deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: 1
+    #          capabilities: [gpu]

@@ -10,6 +10,17 @@ FROM ros:noetic-robot@sha256:0e12e4db836e78c74c4b04c6d16f185d9a18d2b13cf5580747e
 SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# ============== 修复开始 ==============
+# 更新ROS源配置 (修复密钥过期问题)
+RUN rm -f /etc/apt/sources.list.d/ros* && \
+    apt-get update && \
+    apt-get install -y curl gnupg2 && \
+    mkdir -p /usr/share/keyrings && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros.list > /dev/null
+# ============== 修复结束 ==============
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     cmake \

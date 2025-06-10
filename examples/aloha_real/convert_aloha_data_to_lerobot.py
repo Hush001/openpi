@@ -10,13 +10,24 @@ import shutil
 from typing import Literal
 
 import h5py
-from lerobot.common.datasets.lerobot_dataset import LEROBOT_HOME
+from lerobot.common.datasets.lerobot_dataset import HF_LEROBOT_HOME
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.common.datasets.push_dataset_to_hub._download_raw import download_raw
+
 import numpy as np
 import torch
 import tqdm
 import tyro
+from huggingface_hub import snapshot_download  # 新增导入
+
+def download_raw(raw_dir: Path, repo_id: str):
+    """从Hugging Face Hub下载原始数据集"""
+    snapshot_download(
+        repo_id=repo_id,
+        repo_type="dataset",
+        local_dir=raw_dir,
+        allow_patterns="*.hdf5",  # 只下载HDF5文件
+    )
+
 
 
 @dataclasses.dataclass(frozen=True)
