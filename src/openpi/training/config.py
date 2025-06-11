@@ -570,13 +570,13 @@ _CONFIGS = [
     # For instuctions on how to convert and train on your own Aloha dataset see examples/aloha_real/README.md
     TrainConfig(
         name="pi0_aloha_pen_uncap",
-        model=pi0.Pi0Config(),
+        model=pi0.Pi0Config(), # 其中有 action_dim max_token_len action_horizon(动作预测的时间步长)
         data=LeRobotAlohaDataConfig(
-            repo_id="physical-intelligence/aloha_pen_uncap_diverse",
+            repo_id="physical-intelligence/aloha_pen_uncap_diverse", # 数据集的仓库id
             assets=AssetsConfig(
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
-            ),
+            ), #指定归一化数据统计信息和其他资产文件的路径
             default_prompt="uncap the pen",
             repack_transforms=_transforms.Group(
                 inputs=[
@@ -594,8 +594,8 @@ _CONFIGS = [
                 ]
             ),
         ),
-        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),
-        num_train_steps=20_000,
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),#加载预训练权重
+        num_train_steps=20_000, #总训练部署
     ),
     # This config is used to demonstrate how to train on a simple simulated environment.
     TrainConfig(
