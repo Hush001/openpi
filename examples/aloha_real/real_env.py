@@ -17,27 +17,33 @@ DEFAULT_RESET_POSITION = [0, -0.96, 1.16, 0, -0.3, 0]
 
 class RealEnv:
     """
-    Environment for real robot bi-manual manipulation
-    Action space:      [left_arm_qpos (6),             # absolute joint position
-                        left_gripper_positions (1),    # normalized gripper position (0: close, 1: open)
-                        right_arm_qpos (6),            # absolute joint position
-                        right_gripper_positions (1),]  # normalized gripper position (0: close, 1: open)
+    真实机器人双臂操作环境
+    Action space:      [左臂关节位置(6),            # 绝对关节位置
+                        左夹爪归一化位置(1),         # 归一化夹爪位置 (0: 闭合, 1: 打开)
+                        右臂关节位置(6),            # 绝对关节位置
+                        右夹爪归一化位置(1),]        # 归一化夹爪位置 (0: 闭合, 1: 打开)
 
-    Observation space: {"qpos": Concat[ left_arm_qpos (6),          # absolute joint position
-                                        left_gripper_position (1),  # normalized gripper position (0: close, 1: open)
-                                        right_arm_qpos (6),         # absolute joint position
-                                        right_gripper_qpos (1)]     # normalized gripper position (0: close, 1: open)
-                        "qvel": Concat[ left_arm_qvel (6),         # absolute joint velocity (rad)
-                                        left_gripper_velocity (1),  # normalized gripper velocity (pos: opening, neg: closing)
-                                        right_arm_qvel (6),         # absolute joint velocity (rad)
-                                        right_gripper_qvel (1)]     # normalized gripper velocity (pos: opening, neg: closing)
-                        "images": {"cam_high": (480x640x3),        # h, w, c, dtype='uint8'
-                                   "cam_low": (480x640x3),         # h, w, c, dtype='uint8'
-                                   "cam_left_wrist": (480x640x3),  # h, w, c, dtype='uint8'
-                                   "cam_right_wrist": (480x640x3)} # h, w, c, dtype='uint8'
+    Observation space: {"qpos": 拼接[左臂关节位置(6),      # 绝对关节位置
+                                    左夹爪归一化位置(1),   # 归一化夹爪位置 (0: 闭合, 1: 打开)
+                                    右臂关节位置(6),      # 绝对关节位置
+                                    右夹爪归一化位置(1)]  # 归一化夹爪位置 (0: 闭合, 1: 打开)
+                        "qvel": 拼接[左臂关节速度(6),      # 绝对关节速度 (弧度)
+                                    左夹爪归一化速度(1),   # 归一化夹爪速度 (正: 打开中, 负: 闭合中)
+                                    右臂关节速度(6),      # 绝对关节速度 (弧度)
+                                    右夹爪归一化速度(1)]  # 归一化夹爪速度 (正: 打开中, 负: 闭合中)
+                        "images": {"顶部摄像头": (480x640x3),    # 高度, 宽度, 通道, uint8格式
+                                   "底部摄像头": (480x640x3),
+                                   "左腕部摄像头": (480x640x3),
+                                   "右腕部摄像头": (480x640x3)}
     """
 
     def __init__(self, init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True):
+        """
+        初始化真实机器人环境
+        :param init_node: 是否初始化ROS节点
+        :param reset_position: 自定义重置位置（6维关节角度列表）
+        :param setup_robots: 是否进行机器人初始化设置
+        """
         # reset_position = START_ARM_POSE[:6]
         self._reset_position = reset_position[:6] if reset_position else DEFAULT_RESET_POSITION
 
@@ -64,6 +70,7 @@ class RealEnv:
         robot_utils.setup_puppet_bot(self.puppet_bot_right)
 
     def get_qpos(self):
+        """获取归一化的关节位置观测（包含双臂和夹爪）"""
         left_qpos_raw = self.recorder_left.qpos
         right_qpos_raw = self.recorder_right.qpos
         left_arm_qpos = left_qpos_raw[:6]
@@ -77,6 +84,7 @@ class RealEnv:
         return np.concatenate([left_arm_qpos, left_gripper_qpos, right_arm_qpos, right_gripper_qpos])
 
     def get_qvel(self):
+        """获取归一化的关节速度观测（包含双臂和夹爪）"""
         left_qvel_raw = self.recorder_left.qvel
         right_qvel_raw = self.recorder_right.qvel
         left_arm_qvel = left_qvel_raw[:6]
@@ -86,6 +94,7 @@ class RealEnv:
         return np.concatenate([left_arm_qvel, left_gripper_qvel, right_arm_qvel, right_gripper_qvel])
 
     def get_effort(self):
+        """获取关节力矩观测（包含双臂）"""
         left_effort_raw = self.recorder_left.effort
         right_effort_raw = self.recorder_right.effort
         left_robot_effort = left_effort_raw[:7]
@@ -107,12 +116,13 @@ class RealEnv:
         self.puppet_bot_right.gripper.core.pub_single.publish(self.gripper_command)
 
     def _reset_joints(self):
+        """将双臂关节重置到初始位置"""
         robot_utils.move_arms(
             [self.puppet_bot_left, self.puppet_bot_right], [self._reset_position, self._reset_position], move_time=1
         )
 
     def _reset_gripper(self):
-        """Set to position mode and do position resets: first open then close. Then change back to PWM mode"""
+        """重置夹爪状态：先完全打开再闭合，确保夹爪状态正确"""
         robot_utils.move_grippers(
             [self.puppet_bot_left, self.puppet_bot_right], [constants.PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5
         )
@@ -132,6 +142,11 @@ class RealEnv:
         return 0
 
     def reset(self, *, fake=False):
+        """
+        重置环境到初始状态
+        :param fake: 是否虚拟重置（跳过实际硬件操作）
+        :return: 包含初始观测的TimeStep对象
+        """
         if not fake:
             # Reboot puppet robot gripper motors
             self.puppet_bot_left.dxl.robot_reboot_motors("single", "gripper", True)
@@ -143,6 +158,11 @@ class RealEnv:
         )
 
     def step(self, action):
+        """
+        执行一个时间步长的动作
+        :param action: 14维动作向量 [左臂(6)+左夹爪(1)+右臂(6)+右夹爪(1)]
+        :return: 包含新观测的TimeStep对象
+        """
         state_len = int(len(action) / 2)
         left_action = action[:state_len]
         right_action = action[state_len:]
@@ -156,6 +176,12 @@ class RealEnv:
 
 
 def get_action(master_bot_left, master_bot_right):
+    """
+    从主控机械臂获取动作指令
+    :param master_bot_left: 左主控机械臂实例
+    :param master_bot_right: 右主控机械臂实例 
+    :return: 14维动作向量（与RealEnv的action space结构匹配）
+    """
     action = np.zeros(14)  # 6 joint + 1 gripper, for two arms
     # Arm actions
     action[:6] = master_bot_left.dxl.joint_states.position[:6]
@@ -168,4 +194,5 @@ def get_action(master_bot_left, master_bot_right):
 
 
 def make_real_env(init_node, *, reset_position: Optional[List[float]] = None, setup_robots: bool = True) -> RealEnv:
+    """创建真实机器人环境实例的工厂函数"""
     return RealEnv(init_node, reset_position=reset_position, setup_robots=setup_robots)
