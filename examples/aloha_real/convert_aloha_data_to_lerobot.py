@@ -2,6 +2,20 @@
 Script to convert Aloha hdf5 data to the LeRobot dataset v2.0 format.
 
 Example usage: uv run examples/aloha_real/convert_aloha_data_to_lerobot.py --raw-dir /path/to/raw/data --repo-id <org>/<dataset-name>
+
+HDF5 File:
+/observations/qpos shape(帧数,自由度)
+/observations/qvel
+/observations/effort
+/observations/images/cam_high
+/observations/images/cam_low
+/observations/images/cam_left_wrist
+/observations/images/cam_right_wrist shape(T,H,W,C)/JPEG字节数
+/action
+
+*(共多少帧, 高, 宽, 通道)
+
+
 """
 
 import dataclasses
@@ -20,7 +34,11 @@ import tyro
 from huggingface_hub import snapshot_download  # 新增导入
 
 def download_raw(raw_dir: Path, repo_id: str):
-    """从Hugging Face Hub下载原始数据集"""
+    """从Hugging Face Hub下载原始数据集
+    Args:
+        raw_dir: 本地存储原始数据的目录路径
+        repo_id: Hugging Face仓库ID（格式：org/dataset-name）
+    """
     snapshot_download(
         repo_id=repo_id,
         repo_type="dataset",
@@ -32,6 +50,14 @@ def download_raw(raw_dir: Path, repo_id: str):
 
 @dataclasses.dataclass(frozen=True)
 class DatasetConfig:
+    """数据集配置参数
+    Attributes:
+        use_videos: 是否使用视频格式存储图像（默认True）
+        tolerance_s: 时间戳容差（秒），用于视频帧对齐（默认0.0001）
+        image_writer_processes: 图像写入进程数（默认10）
+        image_writer_threads: 每个进程的线程数（默认5） 
+        video_backend: 视频编解码后端（默认None自动选择）
+    """
     use_videos: bool = True
     tolerance_s: float = 0.0001
     image_writer_processes: int = 10
@@ -51,6 +77,17 @@ def create_empty_dataset(
     has_effort: bool = False,
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
 ) -> LeRobotDataset:
+    """创建空数据集结构
+    Args:
+        repo_id: 数据集仓库ID
+        robot_type: 机器人类型（aloha/mobile_aloha）
+        mode: 图像存储模式（video/image）
+        has_velocity: 是否包含速度数据
+        has_effort: 是否包含力矩数据
+        dataset_config: 数据集配置参数
+    Returns:
+        LeRobotDataset: 初始化后的空数据集对象
+    """
     motors = [
         "right_waist",
         "right_shoulder",
@@ -120,8 +157,8 @@ def create_empty_dataset(
             ],
         }
 
-    if Path(LEROBOT_HOME / repo_id).exists():
-        shutil.rmtree(LEROBOT_HOME / repo_id)
+    if Path(HF_LEROBOT_HOME / repo_id).exists():
+        shutil.rmtree(HF_LEROBOT_HOME / repo_id)
 
     return LeRobotDataset.create(
         repo_id=repo_id,
@@ -153,6 +190,13 @@ def has_effort(hdf5_files: list[Path]) -> bool:
 
 
 def load_raw_images_per_camera(ep: h5py.File, cameras: list[str]) -> dict[str, np.ndarray]:
+    """从HDF5文件加载相机图像数据
+    Args:
+        ep: HDF5文件对象
+        cameras: 要加载的相机列表
+    Returns:
+        包含各相机图像数据的字典（key为相机名称，value为numpy数组）
+    """
     imgs_per_cam = {}
     for camera in cameras:
         uncompressed = ep[f"/observations/images/{camera}"].ndim == 4
@@ -207,6 +251,15 @@ def populate_dataset(
     task: str,
     episodes: list[int] | None = None,
 ) -> LeRobotDataset:
+    """将原始数据填充到数据集中
+    Args:
+        dataset: 目标数据集对象
+        hdf5_files: 原始HDF5文件列表
+        task: 任务名称（用于标注episode）
+        episodes: 指定要处理的episode索引列表（None表示处理全部）
+    Returns:
+        填充完成的数据集对象
+    """
     if episodes is None:
         episodes = range(len(hdf5_files))
 
@@ -244,13 +297,25 @@ def port_aloha(
     task: str = "DEBUG",
     *,
     episodes: list[int] | None = None,
-    push_to_hub: bool = True,
+    push_to_hub: bool = False,
     is_mobile: bool = False,
     mode: Literal["video", "image"] = "image",
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
 ):
-    if (LEROBOT_HOME / repo_id).exists():
-        shutil.rmtree(LEROBOT_HOME / repo_id)
+    """主处理流程：将Aloha数据转换为LeRobot格式
+    Args:
+        raw_dir: 原始数据本地存储路径
+        repo_id: 目标数据集仓库ID
+        raw_repo_id: 原始数据集仓库ID（当raw_dir不存在时需要）
+        task: 任务标签名称
+        episodes: 指定处理的episode索引
+        push_to_hub: 是否推送结果到Hugging Face Hub
+        is_mobile: 是否为移动版ALOHA
+        mode: 图像存储模式
+        dataset_config: 数据集配置参数
+    """
+    if (HF_LEROBOT_HOME / repo_id).exists():
+        shutil.rmtree(HF_LEROBOT_HOME / repo_id)
 
     if not raw_dir.exists():
         if raw_repo_id is None:
