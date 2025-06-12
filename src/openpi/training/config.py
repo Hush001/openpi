@@ -603,7 +603,7 @@ TrainConfig(
         name="pi0_realman_aloha",
         model=pi0.Pi0Config(), # 其中有 action_dim max_token_len action_horizon(动作预测的时间步长)
         data=LeRobotAlohaDataConfig(
-            repo_id="my_realma/pick_up_the_banana", # 数据集的仓库id
+            repo_id="my_realman/pick_tp_the_banana", # 数据集的仓库id
             assets=AssetsConfig(
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",

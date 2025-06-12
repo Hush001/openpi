@@ -273,6 +273,7 @@ def populate_dataset(
             frame = {
                 "observation.state": state[i],
                 "action": action[i],
+                "task": task
             }
 
             for camera, img_array in imgs_per_cam.items():
@@ -285,7 +286,7 @@ def populate_dataset(
 
             dataset.add_frame(frame)
 
-        dataset.save_episode(task=task)
+        dataset.save_episode()
 
     return dataset
 
@@ -338,7 +339,10 @@ def port_aloha(
         task=task,
         episodes=episodes,
     )
-    dataset.consolidate()
+
+    #dataset.consolidate()
+    #Remove dataset consolidate #752
+
 
     if push_to_hub:
         dataset.push_to_hub()
