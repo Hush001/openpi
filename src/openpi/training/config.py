@@ -601,6 +601,7 @@ _CONFIGS = [
 
 TrainConfig(
         name="pi0_realman_aloha",
+        batch_size=48,
         model=pi0.Pi0Config(), # 其中有 action_dim max_token_len action_horizon(动作预测的时间步长)
         data=LeRobotAlohaDataConfig(
             repo_id="my_realman/pick_tp_the_banana", # 数据集的仓库id
