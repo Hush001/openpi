@@ -608,7 +608,7 @@ TrainConfig(
                 assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
                 asset_id="trossen",
             ), #指定归一化数据统计信息和其他资产文件的路径
-            default_prompt="pick up banana and put it into the box.",
+            default_prompt="uncap the pen",
             repack_transforms=_transforms.Group(
                 inputs=[
                     _transforms.RepackTransform(
@@ -617,7 +617,6 @@ TrainConfig(
                                 "cam_high": "observation.images.cam_high",
                                 "cam_left_wrist": "observation.images.cam_left_wrist",
                                 "cam_right_wrist": "observation.images.cam_right_wrist",
-                                "cam_low": "observation.images.cam_low",
                             },
                             "state": "observation.state",
                             "actions": "action",
