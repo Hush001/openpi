@@ -24,11 +24,11 @@ def make_aloha_example() -> dict:
 @dataclasses.dataclass(frozen=True)
 class AlohaInputs(transforms.DataTransformFn):
     """Aloha策略的输入数据处理类
-    
+
     参数:
         action_dim: 模型的动作维度，用于填充状态和动作
         adapt_to_pi: 是否将Aloha空间转换到PI内部运行时空间
-        
+
     输入要求:
         - images: 包含摄像头名称和图像的字典，图像格式为[通道, 高, 宽]
         - state: 14维状态向量
@@ -106,7 +106,7 @@ class AlohaInputs(transforms.DataTransformFn):
 @dataclasses.dataclass(frozen=True)
 class AlohaOutputs(transforms.DataTransformFn):
     """Aloha策略的输出数据处理类
-    
+
     参数:
         adapt_to_pi: 是否将输出动作转换回Aloha原始空间
     """
@@ -136,7 +136,6 @@ def _unnormalize(x, min_val, max_val):
 
 def _gripper_to_angular(value):
     """将夹爪线性位置转换为角度空间（用于适配PI模型的预训练空间）
-    
     参数:
         value: 来自Aloha的夹爪线性位置值
     返回:
@@ -152,7 +151,7 @@ def _gripper_to_angular(value):
 
     # This is the inverse of the angular to linear transformation inside the Interbotix code.
     def linear_to_radian(linear_position, arm_length, horn_radius):
-        value = (horn_radius**2 + linear_position**2 - arm_length**2) / (2 * horn_radius * linear_position)
+        value = (horn_radius ** 2 + linear_position ** 2 - arm_length ** 2) / (2 * horn_radius * linear_position)
         return np.arcsin(np.clip(value, -1.0, 1.0))
 
     # The constants are taken from the Interbotix code.
@@ -165,7 +164,7 @@ def _gripper_to_angular(value):
 
 def _gripper_from_angular(value):
     """将角度空间值转换为Aloha夹爪位置空间
-    
+
     参数:
         value: PI模型输出的角度空间值
     返回:
