@@ -110,6 +110,7 @@ class AlohaOutputs(transforms.DataTransformFn):
     参数:
         adapt_to_pi: 是否将输出动作转换回Aloha原始空间
     """
+    adapt_to_pi: bool = True
 
     def __call__(self, data: dict) -> dict:
         """输出处理流程：截取前14维动作并进行空间转换"""

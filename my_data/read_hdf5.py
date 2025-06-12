@@ -94,6 +94,6 @@ def save_hdf5_structure(group: h5py.Group ,base_path:Path ,prefix=''):
 
 
 if __name__ == "__main__":
-    with h5py.File("./raw_data/episode_0.hdf5", 'r') as f:
+    with h5py.File("./my_data/episode_0.hdf5", 'r') as f:
         print_hdf5_structure(f)
         #save_hdf5_structure(f,"../lerobot_data")
