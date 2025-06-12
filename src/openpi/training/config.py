@@ -597,6 +597,37 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),#加载预训练权重
         num_train_steps=20_000, #总训练部署
     ),
+
+
+TrainConfig(
+        name="pi0_realman_aloha",
+        model=pi0.Pi0Config(), # 其中有 action_dim max_token_len action_horizon(动作预测的时间步长)
+        data=LeRobotAlohaDataConfig(
+            repo_id="my_realma/pick_up_the_banana", # 数据集的仓库id
+            assets=AssetsConfig(
+                assets_dir="s3://openpi-assets/checkpoints/pi0_base/assets",
+                asset_id="trossen",
+            ), #指定归一化数据统计信息和其他资产文件的路径
+            default_prompt="uncap the pen",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("s3://openpi-assets/checkpoints/pi0_base/params"),#加载预训练权重
+        num_train_steps=20_000, #总训练部署
+    ),
     # This config is used to demonstrate how to train on a simple simulated environment.
     TrainConfig(
         name="pi0_aloha_sim",

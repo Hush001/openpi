@@ -123,7 +123,7 @@ def process_single_file(input_file, output_file):
                     del cam_high_data
                     gc.collect()
 
-                if 'observations/images/cam_high' in infile:
+                if 'observations/images/cam_low' in infile:
                     cam_low_data = infile['observations/images/cam_low'][:]
                     outfile.create_dataset('observations/images/cam_low', data=cam_low_data, dtype='uint8')
                     del cam_low_data
